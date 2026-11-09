@@ -119,6 +119,10 @@
     @apply fixed inset-x-0 bottom-0 z-50 rounded-t-card;
   }
 
+  .tp-scroll {
+    overscroll-behavior: contain;
+  }
+
   .tp-swipe-hint {
     @apply tp-pill text-[11px] font-semibold text-white transition-all duration-200;
   }

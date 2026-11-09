@@ -164,6 +164,11 @@ export interface BaseDictionary {
     dueLabel: string;
     timeLabel: string;
     dueNone: string;
+    dueToday: string;
+    dueTomorrow: string;
+    dueIn3Days: string;
+    dueIn1Week: string;
+    dueCustom: string;
     importanceLabel: string;
     tagsLabel: string;
     tagsPlaceholder: string;

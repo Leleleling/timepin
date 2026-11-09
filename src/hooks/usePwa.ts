@@ -47,6 +47,8 @@ export function usePwa(): PwaState {
     setStandalone(isStandaloneDisplay());
     const onBeforeInstall = (event: Event) => {
       event.preventDefault();
+      // 用户之前点过「以后再说」后，若浏览器再次抛出安装事件，重新允许展示横幅。
+      setDismissed(false);
       setPrompt(event as InstallPromptEvent);
     };
     const onAppInstalled = () => {

@@ -42,6 +42,7 @@ export const zhFeature: FeatureDictionary = {
     boundary: '提醒只在本页面打开时生效，不会联网、不需要账号，也不会在网页关闭后推送。',
     enabledOk: '提醒已开启，页面保持打开时会检查到期任务',
     enableFail: '未能开启提醒，请检查浏览器的通知权限',
+    testOk: '测试提醒已发送，稍候就能在通知中心看到',
   },
   calendarViews: {
     yearTitleTemplate: '{year} 年',

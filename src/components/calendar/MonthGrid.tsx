@@ -40,11 +40,11 @@ export function MonthGrid({
     <section className="tp-surface tp-pop-in p-4 sm:p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={t.action.back} onClick={onPrev}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={t.calendarViews.prev} onClick={onPrev}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <h2 className="min-w-[7rem] text-center text-base font-semibold">{monthTitle}</h2>
-          <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={t.action.done} onClick={onNext}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={t.calendarViews.next} onClick={onNext}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>

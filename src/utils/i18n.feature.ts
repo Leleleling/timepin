@@ -38,6 +38,7 @@ export interface FeatureDictionary {
     boundary: string;
     enabledOk: string;
     enableFail: string;
+    testOk: string;
   };
   calendarViews: {
     yearTitleTemplate: string;

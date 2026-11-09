@@ -8,6 +8,16 @@ import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { cn } from '../ui/cn';
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** 把 Date 转成 input[type=date] 需要的本地时区 YYYY-MM-DD。 */
+function toDateInput(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export interface TaskFormFieldsProps {
   draft: TaskDraft;
   onChange: (patch: Partial<TaskDraft>) => void;
@@ -34,6 +44,13 @@ export function TaskFormFields({
     { value: 3, label: t.task.importance.high, color: 'bg-brand' },
     { value: 2, label: t.task.importance.medium, color: 'bg-sun' },
     { value: 1, label: t.task.importance.low, color: 'bg-muted' },
+  ];
+
+  const quickDates: { key: string; label: string; date: string }[] = [
+    { key: 'today', label: t.form.dueToday, date: toDateInput(new Date()) },
+    { key: 'tomorrow', label: t.form.dueTomorrow, date: toDateInput(new Date(Date.now() + DAY_MS)) },
+    { key: 'in3', label: t.form.dueIn3Days, date: toDateInput(new Date(Date.now() + 3 * DAY_MS)) },
+    { key: 'in7', label: t.form.dueIn1Week, date: toDateInput(new Date(Date.now() + 7 * DAY_MS)) },
   ];
 
   const errorMessage =
@@ -94,35 +111,58 @@ export function TaskFormFields({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <p className="tp-label mb-2">{t.form.dueLabel}</p>
-          <Input
-            type="date"
-            value={draft.dueDate}
-            onChange={(event) => onChange({ dueDate: event.target.value })}
-          />
+      <div>
+        <p className="tp-label mb-2">{t.form.dueLabel}</p>
+        <div className="flex flex-wrap gap-2">
+          {quickDates.map((option) => {
+            const active = draft.dueDate === option.date;
+            return (
+              <button
+                key={option.key}
+                type="button"
+                aria-pressed={active}
+                onClick={() => onChange({ dueDate: option.date })}
+                className={cn(
+                  'tp-focus tp-pill cursor-pointer border transition-all duration-200',
+                  active
+                    ? 'border-brand bg-brand-soft text-brand-deep dark:bg-brand/20 dark:text-red-300'
+                    : 'tp-border tp-muted hover:border-brand/40 hover:text-brand',
+                )}
+              >
+                {option.label}
+              </button>
+            );
+          })}
         </div>
-        <div>
-          <p className="tp-label mb-2">{t.form.timeLabel}</p>
-          <Input
-            type="time"
-            value={draft.dueTime}
-            disabled={!draft.dueDate}
-            onChange={(event) => onChange({ dueTime: event.target.value })}
-          />
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <div>
+            <p className="tp-label mb-2">{t.form.dueCustom}</p>
+            <Input
+              type="date"
+              value={draft.dueDate}
+              onChange={(event) => onChange({ dueDate: event.target.value })}
+            />
+          </div>
+          <div>
+            <p className="tp-label mb-2">{t.form.timeLabel}</p>
+            <Input
+              type="time"
+              value={draft.dueTime}
+              disabled={!draft.dueDate}
+              onChange={(event) => onChange({ dueTime: event.target.value })}
+            />
+          </div>
         </div>
+        {draft.dueDate ? (
+          <button
+            type="button"
+            onClick={() => onChange({ dueDate: '', dueTime: '' })}
+            className="tp-focus tp-muted mt-2 cursor-pointer text-xs underline decoration-dotted underline-offset-4 hover:text-brand"
+          >
+            {t.form.dueNone}
+          </button>
+        ) : null}
       </div>
-
-      {draft.dueDate ? (
-        <button
-          type="button"
-          onClick={() => onChange({ dueDate: '', dueTime: '' })}
-          className="tp-focus tp-muted cursor-pointer text-xs underline decoration-dotted underline-offset-4 hover:text-brand"
-        >
-          {t.form.dueNone}
-        </button>
-      ) : null}
 
       <div>
         <p className="tp-label mb-2">{t.form.importanceLabel}</p>
@@ -182,22 +222,7 @@ export function TaskFormFields({
       </div>
 
       <div>
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="tp-label">{t.form.subtasksLabel}</p>
-          <button
-            type="button"
-            aria-pressed={draft.pinned}
-            onClick={() => onChange({ pinned: !draft.pinned })}
-            className={cn(
-              'tp-focus tp-pill cursor-pointer border py-1 transition-all duration-200',
-              draft.pinned
-                ? 'border-brand bg-brand/10 text-brand'
-                : 'tp-border tp-muted hover:border-brand/40 hover:text-brand',
-            )}
-          >
-            {t.form.pinnedLabel}
-          </button>
-        </div>
+        <p className="tp-label mb-2">{t.form.subtasksLabel}</p>
         {draft.subtasks.map((item) => (
           <div key={item.id} className="mb-1.5 flex items-center gap-2">
             <input
@@ -246,7 +271,26 @@ export function TaskFormFields({
             <Plus className="h-4 w-4" />
           </Button>
         </div>
-        <p className="tp-muted mt-1.5 text-xs">{t.form.pinnedHint}</p>
+      </div>
+
+      <div>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="tp-label">{t.form.pinnedLabel}</p>
+          <button
+            type="button"
+            aria-pressed={draft.pinned}
+            onClick={() => onChange({ pinned: !draft.pinned })}
+            className={cn(
+              'tp-focus tp-pill cursor-pointer border py-1 transition-all duration-200',
+              draft.pinned
+                ? 'border-brand bg-brand/10 text-brand'
+                : 'tp-border tp-muted hover:border-brand/40 hover:text-brand',
+            )}
+          >
+            {draft.pinned ? t.action.unpin : t.form.pinnedLabel}
+          </button>
+        </div>
+        <p className="tp-muted text-xs">{t.form.pinnedHint}</p>
       </div>
 
       {urgencyPreview !== null ? (

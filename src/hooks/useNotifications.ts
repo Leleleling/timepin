@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { db } from '../db';
 import type { Task } from '../db/models';
 import { interpolate, useDict } from '../utils/i18n';
+import { useAppStore } from '../store/useAppStore';
 import {
   DEFAULT_NOTIFY_PREFERENCES,
   collectDueTasks,
@@ -58,6 +59,7 @@ export interface NotifyState {
 export function useNotifications(): NotifyState {
   const t = useDict();
   const navigate = useNavigate();
+  const language = useAppStore((state) => state.language);
   const [preferences, setPreferences] = useState<NotifyPreferences>({
     ...DEFAULT_NOTIFY_PREFERENCES,
   });
@@ -103,10 +105,11 @@ export function useNotifications(): NotifyState {
 
   const showNotification = useCallback(
     (task: Task) => {
+      const locale = language === 'zh' ? 'zh-CN' : 'en-US';
       const isOverdue = typeof task.dueAt === 'number' && task.dueAt < Date.now();
       const timeText =
         typeof task.dueAt === 'number'
-          ? new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit' }).format(
+          ? new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(
               new Date(task.dueAt),
             )
           : '';
@@ -131,7 +134,7 @@ export function useNotifications(): NotifyState {
           console.error('[timepin] Unable to show due reminder', error),
         );
     },
-    [navigate, t],
+    [navigate, t, language],
   );
 
   useEffect(() => {

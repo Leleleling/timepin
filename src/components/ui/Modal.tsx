@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { Button } from './Button';
 import { cn } from './cn';
@@ -15,7 +15,7 @@ export interface ModalProps {
   className?: string;
 }
 
-/** 移动端贴底、桌面居中的大尺寸模态容器，弹出带 200ms 过渡。 */
+/** 移动端贴底、桌面居中的模态容器，弹出带 200ms 过渡。 */
 export function Modal({
   open,
   onClose,
@@ -26,6 +26,26 @@ export function Modal({
   variant = 'center',
   className,
 }: ModalProps) {
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+
+    // 锁住底层页面滚动，避免弹层内部滚动时背景一起滑动。
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open, onClose]);
+
   if (!open) return null;
 
   return (
@@ -46,14 +66,12 @@ export function Modal({
         aria-modal="true"
         aria-label={title}
         className={cn(
-          'tp-surface tp-pop-in relative z-10 w-full rounded-t-card p-6',
-          variant === 'sheet'
-            ? 'max-h-[82vh] max-w-2xl overflow-y-auto'
-            : 'max-w-lg sm:rounded-card',
+          'tp-surface tp-pop-in relative z-10 flex max-h-[92vh] w-full flex-col rounded-t-card p-0',
+          variant === 'sheet' ? 'max-w-2xl' : 'max-w-lg sm:rounded-card',
           className,
         )}
       >
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start justify-between gap-4 px-6 pt-6">
           <div className="min-w-0">
             <h2 className="text-xl font-bold tracking-tight">{title}</h2>
             {subtitle ? <p className="tp-muted mt-1 text-sm">{subtitle}</p> : null}
@@ -68,9 +86,12 @@ export function Modal({
             <X className="h-5 w-5" />
           </Button>
         </div>
-        <div className="mt-5">{children}</div>
+
+        {/* 只有内容区可滚动，标题与底部按钮始终固定在视口内（修复小屏确认按钮被顶出屏幕）。 */}
+        <div className="tp-scroll mt-5 min-h-0 flex-1 overflow-y-auto px-6 pb-6">{children}</div>
+
         {footer ? (
-          <div className="tp-border mt-5 flex justify-end gap-2 border-t pt-4">{footer}</div>
+          <div className="tp-border flex justify-end gap-2 border-t px-6 py-4">{footer}</div>
         ) : null}
       </section>
     </div>

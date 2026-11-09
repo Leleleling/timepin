@@ -80,7 +80,10 @@ export function SettingsNotifyCard() {
         variant="ghost"
         size="sm"
         className="mt-3"
-        onClick={() => setFeedback(notify.sendTest() ? null : t.notify.enableFail)}
+        onClick={() => {
+          if (notify.sendTest()) setFeedback(t.notify.testOk);
+          else setFeedback(t.notify.enableFail);
+        }}
       >
         {t.notify.testAction}
       </Button>

@@ -42,6 +42,7 @@ export const enFeature: FeatureDictionary = {
     boundary: 'Reminders only work while this page is open. No network, no account, and no push after the page closes.',
     enabledOk: 'Reminders on. Due tasks are checked while the page stays open',
     enableFail: 'Could not enable reminders. Check your browser notification permission',
+    testOk: 'Test reminder sent — look for it in your notifications shortly',
   },
   calendarViews: {
     yearTitleTemplate: '{year}',

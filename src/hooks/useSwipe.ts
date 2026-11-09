@@ -53,6 +53,12 @@ export function useSwipe({
   const onPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
     if (!enabled || event.button !== 0) return;
     origin.current = { x: event.clientX, y: event.clientY, locked: false };
+    // 捕获指针：滑动过程中手指/光标移出卡片也能持续收到 move/up，否则手势会卡住。
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      /* 个别环境不支持 capture，忽略即可，仍可正常滑动 */
+    }
   };
 
   const onPointerMove = (event: ReactPointerEvent<HTMLElement>) => {
