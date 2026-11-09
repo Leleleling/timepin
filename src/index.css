@@ -1,0 +1,176 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --tp-bg: #f9fafb;
+  --tp-surface: #ffffff;
+  --tp-text: #111827;
+  --tp-muted: #6b7280;
+  --tp-border: rgba(17, 24, 39, 0.08);
+  color-scheme: light;
+}
+
+:root.dark {
+  --tp-bg: #111827;
+  --tp-surface: #1f2937;
+  --tp-text: #f9fafb;
+  --tp-muted: #9ca3af;
+  --tp-border: rgba(249, 250, 251, 0.1);
+  color-scheme: dark;
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply min-h-screen font-sans antialiased;
+    background-color: var(--tp-bg);
+    color: var(--tp-text);
+    transition: background-color 200ms ease, color 200ms ease;
+  }
+
+  button,
+  a,
+  input,
+  textarea,
+  select {
+    @apply transition-all duration-200;
+  }
+
+  ::selection {
+    background-color: rgba(229, 72, 77, 0.22);
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background-color: rgba(107, 114, 128, 0.32);
+  }
+}
+
+@layer components {
+  .tp-surface {
+    @apply rounded-card border shadow-soft;
+    background-color: var(--tp-surface);
+    border-color: var(--tp-border);
+  }
+
+  .tp-pill {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium;
+  }
+
+  .tp-focus {
+    @apply outline-none focus-visible:ring-2 focus-visible:ring-brand/60;
+  }
+
+  .tp-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--tp-muted);
+  }
+
+  .tp-muted {
+    color: var(--tp-muted);
+  }
+
+  .tp-border {
+    border-color: var(--tp-border);
+  }
+
+  .tp-divider {
+    height: 1px;
+    background-color: var(--tp-border);
+  }
+
+  .tp-segment {
+    @apply tp-focus flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium;
+  }
+
+  .tp-segment-active {
+    @apply bg-brand text-white shadow-sm;
+  }
+
+  .tp-segment-idle {
+    @apply hover:bg-brand/10;
+    color: var(--tp-muted);
+  }
+
+  .tp-check {
+    @apply tp-focus flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 transition-all duration-200;
+    border-color: var(--tp-border);
+  }
+
+  .tp-colorbar {
+    height: 3px;
+    border-radius: 9999px;
+  }
+
+  .tp-sheet {
+    @apply fixed inset-x-0 bottom-0 z-50 rounded-t-card;
+  }
+
+  .tp-swipe-hint {
+    @apply tp-pill text-[11px] font-semibold text-white transition-all duration-200;
+  }
+}
+
+@keyframes tp-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes tp-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes tp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tp-fade-in {
+  animation: tp-fade-in 200ms ease-out both;
+}
+
+.tp-pop-in {
+  animation: tp-pop-in 200ms ease-out both;
+}
+
+.tp-rise {
+  animation: tp-rise 260ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tp-fade-in,
+  .tp-pop-in,
+  .tp-rise {
+    animation: none;
+  }
+}
