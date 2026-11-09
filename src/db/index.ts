@@ -35,9 +35,10 @@ export const db = new TimePinDB();
  */
 export async function ensureDefaults(): Promise<AppSettings> {
   const stored = await db.settings.get('default');
-  if (stored) return stored;
-  await db.settings.put(DEFAULT_APP_SETTINGS);
-  return DEFAULT_APP_SETTINGS;
+  // 与默认合并，自动补齐旧数据缺失的字段（如 accent），避免读取到 undefined。
+  const merged = { ...DEFAULT_APP_SETTINGS, ...(stored ?? {}) } as AppSettings;
+  if (!stored) await db.settings.put(merged);
+  return merged;
 }
 
 /** 算法层读取问卷配置；未作答时返回内存默认值，不落库、不改变接口。 */

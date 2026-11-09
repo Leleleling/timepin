@@ -20,7 +20,7 @@ export interface TaskCardProps {
 }
 
 const badgeClass = {
-  1: 'bg-brand-soft text-brand-deep dark:bg-brand/20 dark:text-red-300',
+  1: 'bg-brand-soft text-brand-deep dark:bg-brand/20 dark:text-brand-deep',
   2: 'bg-sun-soft text-[#9A6200] dark:bg-sun/20 dark:text-sun',
   3: 'bg-sun-soft text-[#9A6200] dark:bg-sun/20 dark:text-sun',
   4: 'bg-black/5 tp-muted dark:bg-white/10',

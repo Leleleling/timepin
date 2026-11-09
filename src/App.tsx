@@ -16,6 +16,7 @@ import Today from './pages/Today';
 import { useOnboardingGate } from './hooks/useOnboardingGate';
 import { usePwa } from './hooks/usePwa';
 import { useAppStore } from './store/useAppStore';
+import { ACCENTS } from './utils/accents';
 import { useDict } from './utils/i18n';
 
 /**
@@ -57,21 +58,21 @@ function TaskDetailRedirect() {
 function useDocumentPreferences() {
   const theme = useAppStore((state) => state.theme);
   const language = useAppStore((state) => state.language);
+  const accent = useAppStore((state) => state.accent);
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)');
     const apply = () => {
       const isDark = theme === 'dark' || (theme === 'system' && media.matches);
       document.documentElement.classList.toggle('dark', isDark);
-      document.querySelector('meta[name="theme-color"]')?.setAttribute(
-        'content',
-        isDark ? '#111827' : '#E5484D',
-      );
+      document
+        .querySelector('meta[name="theme-color"]')
+        ?.setAttribute('content', isDark ? '#111827' : ACCENTS[accent].brand);
     };
     apply();
     media.addEventListener('change', apply);
     return () => media.removeEventListener('change', apply);
-  }, [theme]);
+  }, [theme, accent]);
 
   useEffect(() => {
     document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';

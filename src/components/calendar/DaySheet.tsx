@@ -84,7 +84,7 @@ export function DaySheet({
                     {task.status === 'done' ? t.task.done : dueText}
                   </span>
                 </span>
-                <span className="tp-pill shrink-0 bg-brand-soft text-brand-deep dark:bg-brand/15 dark:text-red-300">
+                <span className="tp-pill shrink-0 bg-brand-soft text-brand-deep dark:bg-brand/15 dark:text-brand-deep">
                   {t.task.badge[badgeKey]}
                 </span>
               </button>

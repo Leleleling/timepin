@@ -6,9 +6,9 @@ export default {
     extend: {
       colors: {
         brand: {
-          DEFAULT: '#E5484D',
-          soft: '#FDECEC',
-          deep: '#B9373C',
+          DEFAULT: 'rgb(var(--tp-brand) / <alpha-value>)',
+          soft: 'rgb(var(--tp-brand-soft) / <alpha-value>)',
+          deep: 'rgb(var(--tp-brand-deep) / <alpha-value>)',
         },
         sun: {
           DEFAULT: '#F5A623',

@@ -21,7 +21,7 @@ const quadrants: { key: QuadrantKey; value: Quadrant; bar: string; badge: string
     key: 'q1',
     value: 1,
     bar: 'bg-brand',
-    badge: 'bg-brand-soft text-brand-deep dark:bg-brand/20 dark:text-red-300',
+    badge: 'bg-brand-soft text-brand-deep dark:bg-brand/20 dark:text-brand-deep',
   },
   {
     key: 'q2',

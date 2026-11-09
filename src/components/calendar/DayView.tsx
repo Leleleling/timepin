@@ -84,7 +84,7 @@ export function DayView({
             {typeof task.dueAt === 'number' ? timeLabel(task.dueAt) : t.calendarViews.allDay}
           </span>
         </span>
-        <span className="tp-pill shrink-0 bg-brand-soft text-brand-deep dark:bg-brand/15 dark:text-red-300">
+        <span className="tp-pill shrink-0 bg-brand-soft text-brand-deep dark:bg-brand/15 dark:text-brand-deep">
           {t.task.badge[badgeKey]}
         </span>
       </button>
@@ -107,7 +107,7 @@ export function DayView({
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          <span className="tp-pill bg-brand-soft text-brand-deep dark:bg-brand/15 dark:text-red-300">
+          <span className="tp-pill bg-brand-soft text-brand-deep dark:bg-brand/15 dark:text-brand-deep">
             {interpolate(t.calendarViews.dayCountTemplate, { count: tasks.length })}
           </span>
         </div>

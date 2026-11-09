@@ -163,7 +163,7 @@ export function BackupCard() {
               className={cn(
                 'tp-focus tp-border flex-1 cursor-pointer rounded-lg border px-3 py-2 text-left text-xs font-medium transition-all duration-200',
                 mode === item.value
-                  ? 'border-brand bg-brand-soft text-brand-deep dark:bg-brand/15 dark:text-red-300'
+                  ? 'border-brand bg-brand-soft text-brand-deep dark:bg-brand/15 dark:text-brand-deep'
                   : 'tp-muted hover:border-brand/40 hover:text-brand',
               )}
             >

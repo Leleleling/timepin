@@ -18,6 +18,7 @@ export function quadrantOf(task: Task, threshold: number): Quadrant {
 
 interface RankedTask {
   task: Task;
+  done: boolean;
   pinned: boolean;
   overdue: boolean;
   quadrant: Quadrant;
@@ -52,6 +53,7 @@ export function sortTasks(
 
     return {
       task,
+      done: task.status === 'done',
       pinned: task.pinned === true,
       overdue: unfinished && hasDue && (task.dueAt as number) < reference,
       quadrant: quadrantOf(task, settings.urgencyThreshold),
@@ -63,6 +65,8 @@ export function sortTasks(
 
   ranked.sort(
     (a, b) =>
+      // 已完成永远沉到列表底部，但彼此之间仍保持置顶/象限等原有次序。
+      Number(a.done) - Number(b.done) ||
       Number(b.pinned) - Number(a.pinned) ||
       Number(b.overdue) - Number(a.overdue) ||
       a.quadrant - b.quadrant ||

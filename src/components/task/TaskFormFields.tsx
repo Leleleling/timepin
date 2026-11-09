@@ -84,7 +84,7 @@ export function TaskFormFields({
   return (
     <div className="space-y-5">
       {showPrefillHint ? (
-        <p className="tp-pill bg-brand-soft text-brand-deep dark:bg-brand/15 dark:text-red-300">
+        <p className="tp-pill bg-brand-soft text-brand-deep dark:bg-brand/15 dark:text-brand-deep">
           {t.form.urlPrefillHint}
         </p>
       ) : null}
@@ -125,7 +125,7 @@ export function TaskFormFields({
                 className={cn(
                   'tp-focus tp-pill cursor-pointer border transition-all duration-200',
                   active
-                    ? 'border-brand bg-brand-soft text-brand-deep dark:bg-brand/20 dark:text-red-300'
+                    ? 'border-brand bg-brand-soft text-brand-deep dark:bg-brand/20 dark:text-brand-deep'
                     : 'tp-border tp-muted hover:border-brand/40 hover:text-brand',
                 )}
               >
@@ -176,7 +176,7 @@ export function TaskFormFields({
               className={cn(
                 'tp-focus tp-pill flex-1 cursor-pointer justify-center border py-2 transition-all duration-200',
                 draft.importance === level.value
-                  ? 'border-brand bg-brand-soft text-brand-deep dark:bg-brand/20 dark:text-red-300'
+                  ? 'border-brand bg-brand-soft text-brand-deep dark:bg-brand/20 dark:text-brand-deep'
                   : 'tp-border tp-muted hover:border-brand/40 hover:text-brand',
               )}
             >
@@ -236,7 +236,7 @@ export function TaskFormFields({
                   ),
                 })
               }
-              className="h-4 w-4 cursor-pointer accent-[#E5484D]"
+              className="h-4 w-4 cursor-pointer accent-[var(--tp-brand-hex)]"
             />
             <span className={cn('flex-1 text-sm', item.done && 'line-through opacity-55')}>
               {item.title}

@@ -5,6 +5,8 @@
 
 export type Importance = 1 | 2 | 3; // 1低 2中 3高
 export type TaskStatus = 'todo' | 'done' | 'archived' | 'trash';
+/** 可自定义的全局主题强调色预设键。 */
+export type AccentKey = 'red' | 'blue' | 'green' | 'violet' | 'amber' | 'teal';
 /** 看板人工归类后的象限；可选字段，缺省时由 quadrantOf 自动计算。 */
 export type BoardQuadrant = 1 | 2 | 3 | 4;
 
@@ -39,6 +41,7 @@ export interface AppSettings {
   id: 'default';
   theme: 'light' | 'dark' | 'system';
   language: 'zh' | 'en';
+  accent: AccentKey;
   colorMap: { high: string; medium: string; low: string };
   weights: { importance: number; urgency: number };
   urgencyThreshold: number;
@@ -81,6 +84,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   id: 'default',
   theme: 'system',
   language: 'zh',
+  accent: 'red',
   colorMap: {
     high: '#E5484D',
     medium: '#F5A623',

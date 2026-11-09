@@ -53,12 +53,6 @@ export function useSwipe({
   const onPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
     if (!enabled || event.button !== 0) return;
     origin.current = { x: event.clientX, y: event.clientY, locked: false };
-    // 捕获指针：滑动过程中手指/光标移出卡片也能持续收到 move/up，否则手势会卡住。
-    try {
-      event.currentTarget.setPointerCapture(event.pointerId);
-    } catch {
-      /* 个别环境不支持 capture，忽略即可，仍可正常滑动 */
-    }
   };
 
   const onPointerMove = (event: ReactPointerEvent<HTMLElement>) => {
@@ -69,10 +63,16 @@ export function useSwipe({
     const dy = event.clientY - start.y;
 
     if (!start.locked) {
-      if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
-        start.locked = true;
-      } else {
-        return;
+      // 抖动容差：未锁定前不拦截，保证卡片内的按钮点击/纵向滚动正常。
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      // 纵向位移更大时交给浏览器原生滚动，不触发滑动。
+      if (Math.abs(dy) > Math.abs(dx)) return;
+      // 确定为横向滑动后再捕获指针：滑动过程中手指移出卡片也能持续收到事件，不会卡住。
+      start.locked = true;
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        /* 个别环境不支持 capture，忽略即可，仍可正常滑动 */
       }
     }
 
@@ -80,7 +80,12 @@ export function useSwipe({
     applyOffset(bounded);
   };
 
-  const onPointerUp = () => {
+  const onPointerUp = (event: ReactPointerEvent<HTMLElement>) => {
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch {
+      /* 已释放或从未捕获，忽略 */
+    }
     const start = origin.current;
     const distance = liveOffset.current;
     if (start?.locked && Math.abs(distance) >= threshold) {

@@ -8,6 +8,12 @@
   --tp-text: #111827;
   --tp-muted: #6b7280;
   --tp-border: rgba(17, 24, 39, 0.08);
+  --tp-brand: 229 72 77;
+  --tp-brand-soft: 253 236 236;
+  --tp-brand-deep: 185 55 60;
+  --tp-brand-soft-dark: 58 20 22;
+  --tp-brand-deep-dark: 242 163 166;
+  --tp-brand-hex: #e5484d;
   color-scheme: light;
 }
 
@@ -17,6 +23,8 @@
   --tp-text: #f9fafb;
   --tp-muted: #9ca3af;
   --tp-border: rgba(249, 250, 251, 0.1);
+  --tp-brand-soft: var(--tp-brand-soft-dark);
+  --tp-brand-deep: var(--tp-brand-deep-dark);
   color-scheme: dark;
 }
 
@@ -42,7 +50,7 @@
   }
 
   ::selection {
-    background-color: rgba(229, 72, 77, 0.22);
+    background-color: rgb(var(--tp-brand) / 0.22);
   }
 
   ::-webkit-scrollbar {

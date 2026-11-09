@@ -1,4 +1,4 @@
-import { Languages, Palette } from 'lucide-react';
+import { Check, Languages, Palette } from 'lucide-react';
 import { BackupCard } from '../components/settings/BackupCard';
 import { SettingsAboutCard } from '../components/settings/SettingsAboutCard';
 import { SettingsDataCard } from '../components/settings/SettingsDataCard';
@@ -6,14 +6,18 @@ import { SettingsNotifyCard } from '../components/settings/SettingsNotifyCard';
 import { SettingsPwaCard } from '../components/settings/SettingsPwaCard';
 import { cn } from '../components/ui/cn';
 import { useAppStore, type ThemeMode } from '../store/useAppStore';
+import { ACCENTS } from '../utils/accents';
+import type { AccentKey } from '../db/models';
 import { useDict, type Lang } from '../utils/i18n';
 
 export default function Settings() {
   const t = useDict();
   const theme = useAppStore((state) => state.theme);
   const language = useAppStore((state) => state.language);
+  const accent = useAppStore((state) => state.accent);
   const setTheme = useAppStore((state) => state.setTheme);
   const setLanguage = useAppStore((state) => state.setLanguage);
+  const setAccent = useAppStore((state) => state.setAccent);
 
   const themes: { value: ThemeMode; label: string }[] = [
     { value: 'light', label: t.settings.themeLight },
@@ -52,6 +56,41 @@ export default function Settings() {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="tp-divider my-5" />
+
+        <div>
+          <p className="tp-label mb-3">{t.settings.accent}</p>
+          <div className="flex flex-wrap gap-3">
+            {(Object.keys(ACCENTS) as AccentKey[]).map((key) => {
+              const selected = accent === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  aria-label={key}
+                  aria-pressed={selected}
+                  title={key}
+                  onClick={() => setAccent(key)}
+                  className={cn(
+                    'tp-focus h-9 w-9 cursor-pointer rounded-full transition-all duration-200',
+                    selected
+                      ? 'ring-2 ring-brand ring-offset-2 ring-offset-[var(--tp-surface)]'
+                      : 'hover:scale-110',
+                  )}
+                  style={{ backgroundColor: ACCENTS[key].brand }}
+                >
+                  {selected ? (
+                    <span className="flex h-full w-full items-center justify-center text-white">
+                      <Check className="h-4 w-4" strokeWidth={3} />
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+          <p className="tp-muted mt-2 text-xs">{t.settings.accentBody}</p>
         </div>
 
         <div className="tp-divider my-5" />

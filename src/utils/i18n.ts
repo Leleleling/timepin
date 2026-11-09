@@ -119,6 +119,8 @@ export interface BaseDictionary {
     themeLight: string;
     themeDark: string;
     themeSystem: string;
+    accent: string;
+    accentBody: string;
     language: string;
     languageBody: string;
     languageZh: string;

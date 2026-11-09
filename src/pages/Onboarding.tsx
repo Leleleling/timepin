@@ -117,7 +117,7 @@ export default function Onboarding() {
                 className={cn(
                   'tp-focus tp-border flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left text-sm font-medium transition-all duration-200 hover:shadow-soft disabled:cursor-not-allowed disabled:opacity-60',
                   selections[index] === optionIndex
-                    ? 'border-brand bg-brand-soft text-brand-deep dark:bg-brand/15 dark:text-red-300'
+                    ? 'border-brand bg-brand-soft text-brand-deep dark:bg-brand/15 dark:text-brand-deep'
                     : 'tp-muted hover:border-brand/40 hover:text-brand',
                 )}
               >

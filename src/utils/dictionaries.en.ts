@@ -108,6 +108,8 @@ export const en: BaseDictionary = {
     themeLight: 'Light',
     themeDark: 'Dark',
     themeSystem: 'System',
+    accent: 'Accent color',
+    accentBody: 'Pick an accent — buttons, checks and highlights across the app follow it.',
     language: 'Language',
     languageBody: 'Copy switches instantly and the preference is stored on this device.',
     languageZh: '简体中文',

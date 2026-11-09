@@ -108,6 +108,8 @@ export const zh: BaseDictionary = {
     themeLight: '浅色',
     themeDark: '深色',
     themeSystem: '跟随系统',
+    accent: '主题色',
+    accentBody: '选一个强调色，整站按钮、勾选与高亮都会跟着变化。',
     language: '语言',
     languageBody: '界面文案即时切换，设置会保存在本机。',
     languageZh: '简体中文',
