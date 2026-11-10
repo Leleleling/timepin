@@ -7,6 +7,12 @@ export type Importance = 1 | 2 | 3; // 1低 2中 3高
 export type TaskStatus = 'todo' | 'done' | 'archived' | 'trash';
 /** 可自定义的全局主题强调色预设键。 */
 export type AccentKey = 'red' | 'blue' | 'green' | 'violet' | 'amber' | 'teal';
+/** 界面密度档位；缺省 normal，旧数据无需迁移。 */
+export type Density = 'compact' | 'normal' | 'roomy';
+/** 字号档位；缺省 normal。 */
+export type FontScale = 'small' | 'normal' | 'large';
+/** 周期规则；按本地日历推进，避免夏令时偏移。 */
+export type RecurrenceRule = 'daily' | 'weekly' | 'monthly';
 /** 看板人工归类后的象限；可选字段，缺省时由 quadrantOf 自动计算。 */
 export type BoardQuadrant = 1 | 2 | 3 | 4;
 
@@ -26,6 +32,14 @@ export interface Task {
   updatedAt: number;
   /** 看板拖拽归类的人工覆盖；不参与首页排序，也不影响紧急度算分。 */
   boardQuadrant?: BoardQuadrant;
+  /** 移入回收站之前的状态；恢复时据此还原，而不是一律变回待办。 */
+  preTrashStatus?: TaskStatus;
+  /** 置顶任务的手动顺序；数值越小越靠前，缺省由排序退回到原有规则。 */
+  manualOrder?: number;
+  /** 周期规则；完成后自动生成下一次实例。 */
+  recurrence?: RecurrenceRule;
+  /** 最近一次发出到期提醒的时间戳，供「已提醒」状态展示（U27）。 */
+  lastNotifiedAt?: number;
 }
 
 export interface UrgencyProfile {
@@ -42,6 +56,12 @@ export interface AppSettings {
   theme: 'light' | 'dark' | 'system';
   language: 'zh' | 'en';
   accent: AccentKey;
+  /** 以下均为后续版本新增的可选外观字段，旧备份缺失时由 sanitizeSettings 补默认值。 */
+  customAccent?: string;
+  darkAccent?: AccentKey;
+  darkCustomAccent?: string;
+  density?: Density;
+  fontScale?: FontScale;
   colorMap: { high: string; medium: string; low: string };
   weights: { importance: number; urgency: number };
   urgencyThreshold: number;

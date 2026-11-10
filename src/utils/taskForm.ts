@@ -1,4 +1,4 @@
-import type { Importance, Task } from '../db/models';
+import type { Importance, RecurrenceRule, Task } from '../db/models';
 
 export interface TaskDraft {
   title: string;
@@ -9,6 +9,8 @@ export interface TaskDraft {
   tags: string[];
   pinned: boolean;
   subtasks: { id: string; title: string; done: boolean }[];
+  /** 可选，缺省表示不重复；保持可选以免破坏既有草稿夹具。 */
+  recurrence?: RecurrenceRule;
 }
 
 export type DraftError = 'titleRequired' | 'dueBeforeStart' | 'invalidDate';
@@ -24,6 +26,23 @@ export interface TaskPrefillInput {
 
 function pad(value: number): string {
   return String(value).padStart(2, '0');
+}
+
+/** 按本地日历日推进 N 天：用 setDate 而非 +24h，夏令时切换日也能保持同一时刻。 */
+export function addCalendarDays(timestamp: number, days: number): number {
+  const date = new Date(timestamp);
+  date.setDate(date.getDate() + days);
+  return date.getTime();
+}
+
+/** 「只给日期」的默认截止时刻，用于回填时区分用户是否显式设过时刻（S2）。 */
+function isEndOfDay(date: Date): boolean {
+  return (
+    date.getHours() === 23 &&
+    date.getMinutes() === 59 &&
+    date.getSeconds() === 59 &&
+    date.getMilliseconds() === 999
+  );
 }
 
 function formatDateInput(date: Date): string {
@@ -71,11 +90,13 @@ export function draftFromTask(task: Task): TaskDraft {
     title: task.title,
     content: task.content ?? '',
     dueDate: due ? formatDateInput(due) : '',
-    dueTime: due ? formatTimeInput(due) : '',
+    // 只给日期时回填为空，保存后仍是 23:59:59.999，dueAt 往返稳定（S2）。
+    dueTime: due && !isEndOfDay(due) ? formatTimeInput(due) : '',
     importance: task.importance,
     tags: [...task.tags],
     pinned: task.pinned,
     subtasks: task.subtasks.map((item) => ({ ...item })),
+    recurrence: task.recurrence,
   };
 }
 
@@ -154,7 +175,15 @@ export function buildTask(
     subtasks: draft.subtasks.filter((item) => item.title.trim().length > 0),
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
-    // 编辑保存时保留看板的人工归类，避免整对象覆盖把它抹掉。
+    // 编辑保存时保留所有可选增强字段，避免整对象覆盖把它们抹掉。
     ...(existing?.boardQuadrant ? { boardQuadrant: existing.boardQuadrant } : {}),
+    ...(existing?.manualOrder !== undefined
+      ? { manualOrder: existing.manualOrder }
+      : {}),
+    ...(existing?.preTrashStatus ? { preTrashStatus: existing.preTrashStatus } : {}),
+    ...(existing?.lastNotifiedAt !== undefined
+      ? { lastNotifiedAt: existing.lastNotifiedAt }
+      : {}),
+    ...(draft.recurrence ? { recurrence: draft.recurrence } : {}),
   };
 }

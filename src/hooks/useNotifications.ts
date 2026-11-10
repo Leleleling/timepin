@@ -7,12 +7,17 @@ import { interpolate, useDict } from '../utils/i18n';
 import { useAppStore } from '../store/useAppStore';
 import {
   DEFAULT_NOTIFY_PREFERENCES,
+  MAX_NOTIFICATIONS_PER_CHECK,
   collectDueTasks,
   isLeadMinutes,
+  isQuietHour,
   notificationKey,
+  notifySeenKey,
+  pruneSeenKeys,
   sanitizePreferences,
   trimSeenKeys,
   type NotifyPreferences,
+  type QuietHours,
 } from '../utils/notify';
 
 const STORAGE_KEY = 'timepin:notify';
@@ -49,6 +54,7 @@ export interface NotifyState {
   secure: boolean;
   setEnabled: (enabled: boolean) => Promise<boolean>;
   setLeadMinutes: (minutes: number) => void;
+  setQuietHours: (quiet: QuietHours | undefined) => void;
   sendTest: () => boolean;
 }
 
@@ -65,6 +71,8 @@ export function useNotifications(): NotifyState {
   });
   const prefsRef = useRef<NotifyPreferences>(preferences);
   const seenRef = useRef<Set<string>>(new Set());
+  /** U27：免打扰期间积压的任务 id，页面恢复可见时合并成一条摘要。 */
+  const pendingRef = useRef<Set<string>>(new Set());
 
   const supported = typeof window !== 'undefined' && 'Notification' in window;
   const secure = typeof window !== 'undefined' && window.isSecureContext;
@@ -96,7 +104,8 @@ export function useNotifications(): NotifyState {
     const next: NotifyPreferences = {
       ...prefsRef.current,
       ...patch,
-      seenKeys: trimSeenKeys([...seenRef.current]),
+      // 每次提交顺手淘汰过期去重键，seenKeys 不会随使用时长无限增长（U28）。
+      seenKeys: pruneSeenKeys(trimSeenKeys([...seenRef.current])),
     };
     prefsRef.current = next;
     setPreferences(next);
@@ -129,6 +138,12 @@ export function useNotifications(): NotifyState {
             navigate(`/task/${task.id}`);
             notification.close();
           };
+          // U27：记录「已提醒」状态，写入失败不影响通知本身。
+          void db.tasks
+            .update(task.id, { lastNotifiedAt: Date.now() })
+            .catch((error: unknown) =>
+              console.error('[timepin] Unable to record notified state', error),
+            );
         })
         .catch((error: unknown) =>
           console.error('[timepin] Unable to show due reminder', error),
@@ -137,29 +152,76 @@ export function useNotifications(): NotifyState {
     [navigate, t, language],
   );
 
+  /** U27：免打扰期间积压的提醒，在页面恢复可见时合并成一条摘要，不逐条轰炸。 */
+  const showSummary = useCallback(
+    (count: number) =>
+      Promise.resolve()
+        .then(() => {
+          const notification = new Notification(t.notify.dueTitle, {
+            body: interpolate(t.hardeningExtra.notifySummaryTemplate, { count }),
+            icon: '/icon-192.png',
+            tag: 'timepin:summary',
+          });
+          notification.onclick = () => {
+            window.focus();
+            navigate('/');
+            notification.close();
+          };
+        })
+        .catch((error: unknown) =>
+          console.error('[timepin] Unable to show reminder summary', error),
+        ),
+    [navigate, t],
+  );
+
   useEffect(() => {
     const check = () => {
       const prefs = prefsRef.current;
       if (!prefs.enabled || !supported || Notification.permission !== 'granted') return;
-      if (document.visibilityState !== 'visible') return;
-
-      const hits = collectDueTasks(tasks ?? EMPTY_TASKS, Date.now(), prefs.leadMinutes, seenRef.current);
+      // 后台标签页同样检查；页面被浏览器冻结时定时器暂停，恢复可见时会再补发。
+      const timestamp = Date.now();
+      const hits = collectDueTasks(
+        tasks ?? EMPTY_TASKS,
+        timestamp,
+        prefs.leadMinutes,
+        seenRef.current,
+      );
       if (hits.length === 0) return;
-      hits.forEach((task) => {
-        seenRef.current.add(notificationKey(task));
+
+      // 免打扰时段只积压、不弹单条；恢复可见时统一补发一条合并摘要（U27）。
+      if (isQuietHour(timestamp, prefs.quietHours)) {
+        hits.forEach((task) => {
+          pendingRef.current.add(task.id);
+          seenRef.current.add(notifySeenKey(task, prefs.leadMinutes));
+        });
+        commit({});
+        return;
+      }
+
+      // 单批限量，避免窗口内任务过多时一次性轰炸通知中心。
+      hits.slice(0, MAX_NOTIFICATIONS_PER_CHECK).forEach((task) => {
+        seenRef.current.add(notifySeenKey(task, prefs.leadMinutes));
         void showNotification(task);
       });
       commit({});
     };
 
+    const onVisibility = () => {
+      check();
+      if (document.visibilityState !== 'visible' || pendingRef.current.size === 0) return;
+      const count = pendingRef.current.size;
+      pendingRef.current.clear();
+      void showSummary(count);
+    };
+
     const timer = window.setInterval(check, CHECK_INTERVAL);
-    document.addEventListener('visibilitychange', check);
+    document.addEventListener('visibilitychange', onVisibility);
     check();
     return () => {
       window.clearInterval(timer);
-      document.removeEventListener('visibilitychange', check);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [tasks, supported, commit, showNotification]);
+  }, [tasks, supported, commit, showNotification, showSummary]);
 
   const setEnabled = useCallback(
     (enabled: boolean): Promise<boolean> => {
@@ -189,6 +251,14 @@ export function useNotifications(): NotifyState {
     [commit],
   );
 
+  const setQuietHours = useCallback(
+    (quiet: QuietHours | undefined) => {
+      // 起止相同等价于关闭免打扰，直接移除字段，保持偏好结构简洁。
+      commit({ quietHours: quiet && quiet.start !== quiet.end ? quiet : undefined });
+    },
+    [commit],
+  );
+
   const sendTest = useCallback((): boolean => {
     if (!supported || Notification.permission !== 'granted') return false;
     void Promise.resolve()
@@ -209,5 +279,14 @@ export function useNotifications(): NotifyState {
     return true;
   }, [supported, t]);
 
-  return { preferences, permission, supported, secure, setEnabled, setLeadMinutes, sendTest };
+  return {
+    preferences,
+    permission,
+    supported,
+    secure,
+    setEnabled,
+    setLeadMinutes,
+    setQuietHours,
+    sendTest,
+  };
 }

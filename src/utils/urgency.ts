@@ -94,3 +94,29 @@ export function calculateUrgency(
   // 理论上不可达：上面已经覆盖了 (3, 2160) 区间，作为数值异常的兜底。
   return clampScore(profile.answers[last.answerKey]);
 }
+
+export interface CurvePoint {
+  hours: number;
+  score: number;
+}
+
+/**
+ * U25：按对数等距采样曲线，供设置页可视化。
+ * 与 calculateUrgency 共用同一插值实现，避免预览与实际算分出现两套口径。
+ */
+export function urgencyCurve(
+  profile: UrgencyProfile,
+  samples: number = 48,
+  now: number = Date.now(),
+): CurvePoint[] {
+  const count = Math.max(2, Math.floor(samples));
+  const first = URGENCY_NODES[0].hours;
+  const last = URGENCY_NODES[URGENCY_NODES.length - 1].hours;
+  return Array.from({ length: count }, (_, index) => {
+    const hours = first * Math.pow(last / first, index / (count - 1));
+    return {
+      hours,
+      score: calculateUrgency(now + hours * MS_PER_HOUR, profile, now),
+    };
+  });
+}

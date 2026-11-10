@@ -2,13 +2,12 @@ import { useState } from 'react';
 import { Plus, Sparkles, X } from 'lucide-react';
 import type { Importance } from '../../db/models';
 import { useDict } from '../../utils/i18n';
-import type { DraftError, TaskDraft } from '../../utils/taskForm';
+import { addCalendarDays, type DraftError, type TaskDraft } from '../../utils/taskForm';
+import { RECURRENCE_RULES } from '../../utils/recurrence';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { cn } from '../ui/cn';
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** 把 Date 转成 input[type=date] 需要的本地时区 YYYY-MM-DD。 */
 function toDateInput(date: Date): string {
@@ -46,12 +45,28 @@ export function TaskFormFields({
     { value: 1, label: t.task.importance.low, color: 'bg-muted' },
   ];
 
+  const todayKey = toDateInput(new Date());
   const quickDates: { key: string; label: string; date: string }[] = [
-    { key: 'today', label: t.form.dueToday, date: toDateInput(new Date()) },
-    { key: 'tomorrow', label: t.form.dueTomorrow, date: toDateInput(new Date(Date.now() + DAY_MS)) },
-    { key: 'in3', label: t.form.dueIn3Days, date: toDateInput(new Date(Date.now() + 3 * DAY_MS)) },
-    { key: 'in7', label: t.form.dueIn1Week, date: toDateInput(new Date(Date.now() + 7 * DAY_MS)) },
+    { key: 'today', label: t.form.dueToday, date: todayKey },
+    { key: 'tomorrow', label: t.form.dueTomorrow, date: toDateInput(new Date(addCalendarDays(Date.now(), 1))) },
+    { key: 'in3', label: t.form.dueIn3Days, date: toDateInput(new Date(addCalendarDays(Date.now(), 3))) },
+    { key: 'in7', label: t.form.dueIn1Week, date: toDateInput(new Date(addCalendarDays(Date.now(), 7))) },
   ];
+
+  /**
+   * 选「今天」时若已填写且已过去的时刻，清空时刻回落到当天 23:59，
+   * 否则 validateDraft 会因 dueAt < startAt 拒绝保存（S1）。
+   */
+  const pickQuickDate = (date: string) => {
+    const patch: Partial<TaskDraft> = { dueDate: date };
+    if (date === todayKey && draft.dueTime) {
+      const [hours, minutes] = draft.dueTime.split(':').map(Number);
+      const candidate = new Date();
+      candidate.setHours(hours, minutes, 0, 0);
+      if (candidate.getTime() < Date.now()) patch.dueTime = '';
+    }
+    onChange(patch);
+  };
 
   const errorMessage =
     error === 'titleRequired'
@@ -109,6 +124,7 @@ export function TaskFormFields({
           aria-label={t.form.contentLabel}
           onChange={(event) => onChange({ content: event.target.value })}
         />
+        <p className="tp-muted mt-2 text-xs">{t.featuresExtra.notesHint}</p>
       </div>
 
       <div>
@@ -121,7 +137,7 @@ export function TaskFormFields({
                 key={option.key}
                 type="button"
                 aria-pressed={active}
-                onClick={() => onChange({ dueDate: option.date })}
+                onClick={() => pickQuickDate(option.date)}
                 className={cn(
                   'tp-focus tp-pill cursor-pointer border transition-all duration-200',
                   active
@@ -266,6 +282,7 @@ export function TaskFormFields({
                 addSubtask();
               }
             }}
+            onBlur={addSubtask}
           />
           <Button variant="soft" size="icon" className="h-11 w-11 shrink-0" onClick={addSubtask} aria-label={t.form.subtaskAdd}>
             <Plus className="h-4 w-4" />
@@ -291,6 +308,35 @@ export function TaskFormFields({
           </button>
         </div>
         <p className="tp-muted text-xs">{t.form.pinnedHint}</p>
+      </div>
+
+      <div>
+        <p className="tp-label mb-2">{t.featuresExtra.recurrence}</p>
+        <div className="flex flex-wrap gap-2">
+          {[undefined, ...RECURRENCE_RULES].map((rule) => (
+            <button
+              key={rule ?? 'none'}
+              type="button"
+              aria-pressed={draft.recurrence === rule}
+              onClick={() => onChange({ recurrence: rule })}
+              className={cn(
+                'tp-focus tp-pill cursor-pointer border py-1.5 transition-all duration-200',
+                draft.recurrence === rule
+                  ? 'border-brand bg-brand-soft text-brand-deep dark:bg-brand/20 dark:text-brand-deep'
+                  : 'tp-border tp-muted hover:border-brand/40',
+              )}
+            >
+              {rule === undefined
+                ? t.featuresExtra.recurrenceNone
+                : rule === 'daily'
+                  ? t.featuresExtra.recurrenceDaily
+                  : rule === 'weekly'
+                    ? t.featuresExtra.recurrenceWeekly
+                    : t.featuresExtra.recurrenceMonthly}
+            </button>
+          ))}
+        </div>
+        <p className="tp-muted mt-2 text-xs">{t.featuresExtra.recurrenceHint}</p>
       </div>
 
       {urgencyPreview !== null ? (

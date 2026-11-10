@@ -1,11 +1,18 @@
 import { useState } from 'react';
 import { Sparkles } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { saveUrgencyProfile } from '../db';
 import type { UrgencyProfile } from '../db/models';
 import { useAppStore } from '../store/useAppStore';
 import { interpolate, useDict } from '../utils/i18n';
-import { QUESTIONNAIRE, answeredProfile, skippedProfile } from '../utils/questionnaire';
+import {
+  QUESTIONNAIRE,
+  answeredProfile,
+  readSelections,
+  selectionsFromProfile,
+  skippedProfile,
+  writeSelections,
+} from '../utils/questionnaire';
 import { Button } from '../components/ui/Button';
 import { cn } from '../components/ui/cn';
 
@@ -16,9 +23,22 @@ export default function Onboarding() {
   const t = useDict();
   const navigate = useNavigate();
   const prefill = useAppStore((state) => state.prefill);
+  const recalibrating = useAppStore((state) => state.recalibrating);
   const openTaskModal = useAppStore((state) => state.openTaskModal);
-  const [index, setIndex] = useState(0);
-  const [selections, setSelections] = useState<(number | null)[]>(EMPTY_SELECTIONS);
+  const [params] = useSearchParams();
+  const rawQuestion = Number(params.get('q'));
+  // U25：?q=N 表示只重答第 N 题，其余题目沿用已保存的答案。
+  const singleIndex =
+    params.has('q') &&
+    Number.isInteger(rawQuestion) &&
+    rawQuestion >= 0 &&
+    rawQuestion < QUESTIONNAIRE.length
+      ? rawQuestion
+      : null;
+  const [index, setIndex] = useState(singleIndex ?? 0);
+  const [selections, setSelections] = useState<(number | null)[]>(() =>
+    singleIndex === null ? EMPTY_SELECTIONS : readSelections(),
+  );
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -28,8 +48,13 @@ export default function Onboarding() {
     setFailed(false);
     void saveUrgencyProfile(profile)
       .then(() => {
-        navigate('/', { replace: true });
-        if (prefill?.title || prefill?.due) openTaskModal(prefill);
+        writeSelections(selectionsFromProfile(profile));
+        // 单题重答与整份重新校准都回到设置页，首次问卷才回首页。
+        const destination = singleIndex !== null || recalibrating ? '/settings' : '/';
+        navigate(destination, { replace: true });
+        if (singleIndex === null && !recalibrating && (prefill?.title || prefill?.due)) {
+          openTaskModal(prefill);
+        }
       })
       .catch((error: unknown) => {
         console.error('[timepin] Unable to save questionnaire', error);
@@ -43,11 +68,13 @@ export default function Onboarding() {
     const next = [...selections];
     next[index] = optionIndex;
     setSelections(next);
-    if (index < QUESTIONNAIRE.length - 1) {
-      setIndex(index + 1);
-    } else {
+    // 单题重答：选完立刻保存，不跳到其它题目。
+    if (singleIndex !== null) {
       finish(answeredProfile(next));
+      return;
     }
+    // 最后一题不再自动提交：留出「上一题」回退与确认的机会（T15）。
+    if (index < QUESTIONNAIRE.length - 1) setIndex(index + 1);
   };
 
   return (
@@ -70,33 +97,54 @@ export default function Onboarding() {
               <p className="tp-muted text-xs">{t.quiz.intro}</p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" disabled={saving} onClick={() => finish(skippedProfile())}>
-            {t.quiz.skip}
-          </Button>
+          {singleIndex === null ? (
+            <Button variant="ghost" size="sm" disabled={saving} onClick={() => finish(skippedProfile())}>
+              {t.quiz.skip}
+            </Button>
+          ) : (
+            <Button variant="ghost" size="sm" onClick={() => navigate('/settings')}>
+              {t.action.back}
+            </Button>
+          )}
         </div>
 
-        <div className="mb-6">
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <span className="tp-label">{t.quiz.eyebrow}</span>
-            <span className="tp-muted text-xs">
+        {singleIndex === null ? (
+          <div className="mb-6">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <span className="tp-label">{t.quiz.eyebrow}</span>
+              <span className="tp-muted text-xs">
+                {interpolate(t.quiz.stepTemplate, {
+                  current: index + 1,
+                  total: QUESTIONNAIRE.length,
+                })}
+              </span>
+            </div>
+            <div className="flex gap-1.5">
+              {QUESTIONNAIRE.map((question, position) => (
+                <span
+                  key={question.key}
+                  className={cn(
+                    'h-1.5 flex-1 rounded-full transition-all duration-200',
+                    // 进度按「实际已作答」计算，尚未作答的当前题不高亮。
+                    selections[position] !== null
+                      ? 'bg-brand'
+                      : 'bg-black/10 dark:bg-white/10',
+                  )}
+                />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="mb-6">
+            <span className="tp-label">{t.hardeningExtra.singleReanswerTitle}</span>
+            <span className="tp-muted ml-2 text-xs">
               {interpolate(t.quiz.stepTemplate, {
                 current: index + 1,
                 total: QUESTIONNAIRE.length,
               })}
             </span>
           </div>
-          <div className="flex gap-1.5">
-            {QUESTIONNAIRE.map((question, position) => (
-              <span
-                key={question.key}
-                className={cn(
-                  'h-1.5 flex-1 rounded-full transition-all duration-200',
-                  position <= index ? 'bg-brand' : 'bg-black/10 dark:bg-white/10',
-                )}
-              />
-            ))}
-          </div>
-        </div>
+        )}
 
         <section className="tp-surface tp-pop-in p-6 sm:p-7">
           <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-brand-soft text-brand dark:bg-brand/15">
@@ -144,6 +192,33 @@ export default function Onboarding() {
               {t.feedback.saveError}
             </p>
           ) : null}
+
+          <div className="tp-border mt-6 flex items-center justify-between gap-3 border-t pt-4">
+            {singleIndex === null ? (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={index === 0 || saving}
+                  onClick={() => setIndex((current) => Math.max(0, current - 1))}
+                >
+                  {t.action.back}
+                </Button>
+                {index === QUESTIONNAIRE.length - 1 ? (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    disabled={saving || selections[index] === null}
+                    onClick={() => finish(answeredProfile(selections))}
+                  >
+                    {t.quiz.finish}
+                  </Button>
+                ) : null}
+              </>
+            ) : (
+              <span className="tp-muted text-xs">{t.quiz.optionHint}</span>
+            )}
+          </div>
         </section>
 
         <p className="tp-muted mx-auto mt-5 max-w-md text-center text-xs leading-relaxed">

@@ -25,7 +25,7 @@ export function Navigation() {
     <nav
       className="tp-border fixed inset-x-0 bottom-0 z-40 border-t bg-white/90 backdrop-blur-xl dark:bg-canvas-surface-dark/90"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-      aria-label="Primary navigation"
+      aria-label={t.action.navigation}
     >
       <div className="mx-auto flex h-[68px] max-w-2xl items-stretch px-2">
         {items.map(({ to, key, Icon }) => {

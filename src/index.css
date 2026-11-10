@@ -14,6 +14,19 @@
   --tp-brand-soft-dark: 58 20 22;
   --tp-brand-deep-dark: 242 163 166;
   --tp-brand-hex: #e5484d;
+  /* 语义色与设计令牌：全部集中在此，组件不再散落十六进制值。 */
+  --tp-success: 22 121 74;
+  --tp-success-soft: 231 247 236;
+  --tp-warning: 154 98 0;
+  --tp-warning-deep: 122 82 0;
+  --tp-warning-soft: 255 243 223;
+  --tp-color-high: #e5484d;
+  --tp-color-medium: #f5a623;
+  --tp-color-low: #6b7280;
+  --tp-radius: 0.875rem;
+  --tp-pad: 1.25rem;
+  --tp-gap: 1rem;
+  --tp-font-scale: 1;
   color-scheme: light;
 }
 
@@ -25,13 +38,41 @@
   --tp-border: rgba(249, 250, 251, 0.1);
   --tp-brand-soft: var(--tp-brand-soft-dark);
   --tp-brand-deep: var(--tp-brand-deep-dark);
+  --tp-success: 123 216 160;
+  --tp-success-soft: 22 101 66;
+  --tp-warning: 245 166 35;
+  --tp-warning-deep: 245 166 35;
+  --tp-warning-soft: 78 52 6;
   color-scheme: dark;
+}
+
+/* 三档密度与字号：由 App.tsx 写入 data-*，通过令牌统一影响全局。 */
+html[data-density='compact'] {
+  --tp-radius: 0.625rem;
+  --tp-pad: 0.875rem;
+  --tp-gap: 0.625rem;
+}
+
+html[data-density='roomy'] {
+  --tp-radius: 1.25rem;
+  --tp-pad: 1.75rem;
+  --tp-gap: 1.5rem;
+}
+
+html[data-font-scale='small'] {
+  --tp-font-scale: 0.9;
+}
+
+html[data-font-scale='large'] {
+  --tp-font-scale: 1.15;
 }
 
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;
     scroll-behavior: smooth;
+    /* rem 基准随字号档位缩放，全站文字与间距一并变化。 */
+    font-size: calc(16px * var(--tp-font-scale));
   }
 
   body {
@@ -185,4 +226,19 @@
   .tp-rise {
     animation: none;
   }
+}
+
+/*
+ * 密度档位覆盖页面常用的固定内边距与纵向间距。
+ * 这些值来自 Tailwind utilities（p-5 / space-y-4），因此需要用更高优先级覆盖；
+ * 令牌集中在 :root，后续新增组件可直接使用 var(--tp-pad) / var(--tp-gap)。
+ */
+html[data-density='compact'] .tp-surface.p-5,
+html[data-density='roomy'] .tp-surface.p-5 {
+  padding: var(--tp-pad) !important;
+}
+
+html[data-density='compact'] .space-y-4 > :not([hidden]) ~ :not([hidden]),
+html[data-density='roomy'] .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: var(--tp-gap) !important;
 }

@@ -14,8 +14,11 @@ export interface PwaState {
   supported: boolean;
   needRefresh: boolean;
   offlineReady: boolean;
+  /** 更新横幅被「以后再说」关掉后，本次会话不再弹出。 */
+  updateDismissed: boolean;
   promptInstall: () => Promise<boolean>;
   dismissInstall: () => void;
+  dismissUpdate: () => void;
   applyUpdate: () => void;
 }
 
@@ -31,6 +34,7 @@ function isStandaloneDisplay(): boolean {
 export function usePwa(): PwaState {
   const [prompt, setPrompt] = useState<InstallPromptEvent | null>(null);
   const [dismissed, setDismissed] = useState(false);
+  const [updateDismissed, setUpdateDismissed] = useState(false);
   const [installed, setInstalled] = useState(false);
   const [standalone, setStandalone] = useState(false);
 
@@ -80,6 +84,7 @@ export function usePwa(): PwaState {
   }, [prompt]);
 
   const dismissInstall = useCallback(() => setDismissed(true), []);
+  const dismissUpdate = useCallback(() => setUpdateDismissed(true), []);
 
   const applyUpdate = useCallback(() => {
     void updateServiceWorker(true).catch((error: unknown) =>
@@ -94,8 +99,10 @@ export function usePwa(): PwaState {
     supported: typeof navigator !== 'undefined' && 'serviceWorker' in navigator,
     needRefresh,
     offlineReady,
+    updateDismissed,
     promptInstall,
     dismissInstall,
+    dismissUpdate,
     applyUpdate,
   };
 }

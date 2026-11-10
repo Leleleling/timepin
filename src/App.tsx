@@ -1,22 +1,17 @@
 import { useEffect } from 'react';
-import {
-  Navigate,
-  Route,
-  Routes,
-  useLocation,
-  useNavigate,
-  useParams,
-} from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AppLayout } from './components/layout/AppLayout';
 import Board from './pages/Board';
 import Calendar from './pages/Calendar';
 import Onboarding from './pages/Onboarding';
 import Settings from './pages/Settings';
+import Tags from './pages/Tags';
+import TaskDetail from './pages/TaskDetail';
 import Today from './pages/Today';
 import { useOnboardingGate } from './hooks/useOnboardingGate';
 import { usePwa } from './hooks/usePwa';
 import { useAppStore } from './store/useAppStore';
-import { ACCENTS } from './utils/accents';
+import { accentHex, applyAccent, safeAccent } from './utils/accents';
 import { useDict } from './utils/i18n';
 
 /**
@@ -40,42 +35,52 @@ function useShortcutCapture() {
   }, [location.pathname, location.search, openTaskModal]);
 }
 
-/** 通知或外部链接带来的 /task/{id}：打开编辑后回到首页。 */
-function TaskDetailRedirect() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const openTaskModal = useAppStore((state) => state.openTaskModal);
-
-  useEffect(() => {
-    if (id) openTaskModal(undefined, id);
-    navigate('/', { replace: true });
-  }, [id, navigate, openTaskModal]);
-
-  return null;
-}
-
 /** 主题与语言写入 html 根节点；system 模式跟随设备偏好实时响应。 */
 function useDocumentPreferences() {
   const theme = useAppStore((state) => state.theme);
   const language = useAppStore((state) => state.language);
   const accent = useAppStore((state) => state.accent);
+  const customAccent = useAppStore((state) => state.customAccent);
+  const darkAccent = useAppStore((state) => state.darkAccent);
+  const darkCustomAccent = useAppStore((state) => state.darkCustomAccent);
+  const density = useAppStore((state) => state.density);
+  const fontScale = useAppStore((state) => state.fontScale);
+  const colorMap = useAppStore((state) => state.colorMap);
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)');
     const apply = () => {
       const isDark = theme === 'dark' || (theme === 'system' && media.matches);
       document.documentElement.classList.toggle('dark', isDark);
+      // 深浅模式各有独立的一套主题色；未单独设置深色时回落到浅色那套（U4）。
+      const key = safeAccent(isDark ? (darkAccent ?? accent) : accent);
+      const custom = isDark ? (darkCustomAccent ?? customAccent) : customAccent;
+      applyAccent(key, custom);
       document
         .querySelector('meta[name="theme-color"]')
-        ?.setAttribute('content', isDark ? '#111827' : ACCENTS[accent].brand);
+        ?.setAttribute('content', isDark ? '#111827' : accentHex(key, custom));
     };
     apply();
     media.addEventListener('change', apply);
     return () => media.removeEventListener('change', apply);
-  }, [theme, accent]);
+  }, [theme, accent, customAccent, darkAccent, darkCustomAccent]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.density = density;
+    root.dataset.fontScale = fontScale;
+    root.style.setProperty('--tp-color-high', colorMap.high);
+    root.style.setProperty('--tp-color-medium', colorMap.medium);
+    root.style.setProperty('--tp-color-low', colorMap.low);
+  }, [density, fontScale, colorMap.high, colorMap.medium, colorMap.low]);
 
   useEffect(() => {
     document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
+    // 静态 HTML 里的标题与安装名是中文默认值，运行时按当前语言覆盖。
+    document.title = language === 'zh' ? '时光扣 · TimePin' : 'TimePin · Local-first tasks';
+    document
+      .querySelector('meta[name="apple-mobile-web-app-title"]')
+      ?.setAttribute('content', language === 'zh' ? '时光扣' : 'TimePin');
   }, [language]);
 }
 
@@ -98,12 +103,19 @@ export default function App() {
   const pwa = usePwa();
   const gate = useOnboardingGate();
   const { pathname } = useLocation();
+  const recalibrating = useAppStore((state) => state.recalibrating);
+  const setRecalibrating = useAppStore((state) => state.setRecalibrating);
+
+  // 问卷重新保存后才清除标记，避免 useLiveQuery 尚未刷新时被 gate 送回问卷页。
+  useEffect(() => {
+    if (recalibrating && gate === 'done') setRecalibrating(false);
+  }, [recalibrating, gate, setRecalibrating]);
 
   if (gate === 'loading') return <LoadingScreen />;
-  if (gate === 'needsOnboarding' && pathname !== '/onboarding') {
+  if (!recalibrating && gate === 'needsOnboarding' && pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
   }
-  if (gate === 'done' && pathname === '/onboarding') {
+  if (!recalibrating && gate === 'done' && pathname === '/onboarding') {
     return <Navigate to="/" replace />;
   }
 
@@ -115,8 +127,9 @@ export default function App() {
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/board" element={<Board />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/tags" element={<Tags />} />
         <Route path="/new" element={<Navigate to="/" replace />} />
-        <Route path="/task/:id" element={<TaskDetailRedirect />} />
+        <Route path="/task/:id" element={<TaskDetail />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

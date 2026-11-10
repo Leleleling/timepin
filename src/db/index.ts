@@ -1,5 +1,11 @@
 import Dexie, { type EntityTable } from 'dexie';
-import { BACKUP_APP, BACKUP_SCHEMA_VERSION, type BackupSnapshot, type ImportMode } from '../utils/backup';
+import {
+  BACKUP_APP,
+  BACKUP_SCHEMA_VERSION,
+  sanitizeSettings,
+  type BackupSnapshot,
+  type ImportMode,
+} from '../utils/backup';
 import {
   DEFAULT_APP_SETTINGS,
   DEFAULT_URGENCY_PROFILE,
@@ -35,9 +41,12 @@ export const db = new TimePinDB();
  */
 export async function ensureDefaults(): Promise<AppSettings> {
   const stored = await db.settings.get('default');
-  // 与默认合并，自动补齐旧数据缺失的字段（如 accent），避免读取到 undefined。
-  const merged = { ...DEFAULT_APP_SETTINGS, ...(stored ?? {}) } as AppSettings;
-  if (!stored) await db.settings.put(merged);
+  // 净化会补齐旧数据缺失的字段（如 accent）并回退非法值；补齐结果真正写回 DB，
+  // 避免每次启动都依赖内存兜底（U30）。
+  const merged = sanitizeSettings(stored ?? DEFAULT_APP_SETTINGS);
+  if (!stored || JSON.stringify(stored) !== JSON.stringify(merged)) {
+    await db.settings.put(merged);
+  }
   return merged;
 }
 
@@ -73,7 +82,7 @@ export async function readBackupSnapshot(): Promise<BackupSnapshot> {
       app: BACKUP_APP,
       tasks,
       urgencyProfile: profile ?? null,
-      settings: storedSettings ?? DEFAULT_APP_SETTINGS,
+      settings: sanitizeSettings(storedSettings ?? DEFAULT_APP_SETTINGS),
     };
   });
 }
@@ -94,7 +103,8 @@ export async function applyBackupSnapshot(
     }
     if (snapshot.tasks.length > 0) await db.tasks.bulkPut(snapshot.tasks);
     if (snapshot.urgencyProfile) await db.urgencyProfile.put(snapshot.urgencyProfile);
-    await db.settings.put(snapshot.settings);
+    // 落库前再次净化：即使调用方绕过 parseBackup，也不会把非法 accent 写进 IndexedDB。
+    await db.settings.put(sanitizeSettings(snapshot.settings));
   });
 }
 

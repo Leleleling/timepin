@@ -6,10 +6,12 @@ import { MonthGrid } from '../components/calendar/MonthGrid';
 import { WeekGrid } from '../components/calendar/WeekGrid';
 import { YearGrid } from '../components/calendar/YearGrid';
 import { cn } from '../components/ui/cn';
+import { useNow } from '../hooks/useNow';
 import { useTasks } from '../hooks/useTasks';
 import { useAppStore } from '../store/useAppStore';
 import { dateKey, groupTasksByDate } from '../utils/calendar';
 import { useDict } from '../utils/i18n';
+import { calculateUrgency } from '../utils/urgency';
 
 type CalendarView = 'year' | 'month' | 'week' | 'day';
 
@@ -23,9 +25,10 @@ export default function Calendar() {
   const t = useDict();
   const language = useAppStore((state) => state.language);
   const openTaskModal = useAppStore((state) => state.openTaskModal);
-  const { tasks, settings } = useTasks();
+  const { tasks, settings, profile, updateTask } = useTasks();
 
-  const today = new Date();
+  const now = useNow();
+  const today = new Date(now);
   const [view, setView] = useState<CalendarView>('month');
   const [cursor, setCursor] = useState({ year: today.getFullYear(), month: today.getMonth() });
   const [anchor, setAnchor] = useState<Date>(today);
@@ -66,6 +69,35 @@ export default function Calendar() {
   };
 
   const selectDay = (key: string, date: Date) => setSelection({ key, date });
+
+  /** U22：格子内新建预填当天 23:59；过去的日期回落到「一分钟后」，避免表单校验直接拒绝。 */
+  const createOn = (date: Date) => {
+    const target = new Date(date);
+    target.setHours(23, 59, 0, 0);
+    openTaskModal({ due: Math.max(Date.now() + 60_000, target.getTime()) });
+  };
+
+  /** U22：拖到新日期时保留原时刻（无时刻则当天 23:59），并重算紧急度。 */
+  const reschedule = (taskId: string, date: Date) => {
+    const task = tasks.find((item) => item.id === taskId);
+    if (!task) return;
+    const target = new Date(date);
+    const original =
+      typeof task.dueAt === 'number' ? new Date(task.dueAt) : null;
+    target.setHours(
+      original ? original.getHours() : 23,
+      original ? original.getMinutes() : 59,
+      0,
+      0,
+    );
+    const dueAt = target.getTime();
+    void updateTask(taskId, {
+      dueAt,
+      urgencyScore: calculateUrgency(dueAt, profile),
+    }).catch((error: unknown) =>
+      console.error('[timepin] Unable to reschedule task', error),
+    );
+  };
 
   return (
     <div className="tp-rise space-y-5">
@@ -112,6 +144,8 @@ export default function Calendar() {
           onPrev={() => shift(-1)}
           onNext={() => shift(1)}
           onSelect={selectDay}
+          onCreate={createOn}
+          onReschedule={reschedule}
         />
       ) : null}
 
@@ -139,7 +173,7 @@ export default function Calendar() {
           onNext={() => shift(1)}
           onToday={goToday}
           onEdit={(task) => openTaskModal(undefined, task.id)}
-          onCreate={() => openTaskModal()}
+          onCreate={() => createOn(anchor)}
           onOpenSheet={() => selectDay(dayKey, anchor)}
         />
       ) : null}

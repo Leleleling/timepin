@@ -33,5 +33,11 @@ export function groupByQuadrant(
     if (task.status === 'trash' || task.status === 'archived') return;
     grouped[resolveQuadrant(task, threshold)].push(task);
   });
+  // 与首页一致：每个象限里已完成任务都沉到底部（稳定排序，未完成任务保持原次序）。
+  Object.values(grouped).forEach((list) =>
+    list.sort(
+      (a, b) => Number(a.status === 'done') - Number(b.status === 'done'),
+    ),
+  );
   return grouped;
 }

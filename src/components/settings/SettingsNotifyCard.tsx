@@ -74,6 +74,47 @@ export function SettingsNotifyCard() {
         ))}
       </div>
 
+      <div className="tp-divider my-5" />
+
+      <p className="tp-label mb-2">{t.hardeningExtra.quietHours}</p>
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2 text-xs">
+          <span className="tp-muted">{t.hardeningExtra.quietStart}</span>
+          <input
+            type="number"
+            min={0}
+            max={23}
+            value={notify.preferences.quietHours?.start ?? 0}
+            aria-label={t.hardeningExtra.quietStart}
+            onChange={(event) =>
+              notify.setQuietHours({
+                start: Math.min(23, Math.max(0, Number(event.target.value) || 0)),
+                end: notify.preferences.quietHours?.end ?? 0,
+              })
+            }
+            className="tp-focus tp-border tp-surface h-9 w-16 rounded-lg border px-2 text-xs"
+          />
+        </label>
+        <label className="flex items-center gap-2 text-xs">
+          <span className="tp-muted">{t.hardeningExtra.quietEnd}</span>
+          <input
+            type="number"
+            min={0}
+            max={23}
+            value={notify.preferences.quietHours?.end ?? 0}
+            aria-label={t.hardeningExtra.quietEnd}
+            onChange={(event) =>
+              notify.setQuietHours({
+                start: notify.preferences.quietHours?.start ?? 0,
+                end: Math.min(23, Math.max(0, Number(event.target.value) || 0)),
+              })
+            }
+            className="tp-focus tp-border tp-surface h-9 w-16 rounded-lg border px-2 text-xs"
+          />
+        </label>
+      </div>
+      <p className="tp-muted mt-2 text-xs leading-relaxed">{t.hardeningExtra.quietHint}</p>
+
       <p className="tp-muted mt-3 text-xs leading-relaxed">{permissionText}</p>
 
       <Button

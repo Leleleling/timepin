@@ -7,6 +7,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { useDict } from '../../utils/i18n';
 import { TaskForm } from '../task/TaskForm';
 import { Button } from '../ui/Button';
+import { ToastHost } from '../ui/Toast';
 import { Input } from '../ui/Input';
 import { Navigation } from './Navigation';
 import { PwaBanner } from './PwaBanner';
@@ -33,6 +34,7 @@ export function AppLayout({ pwa }: AppLayoutProps) {
   const theme = useAppStore((state) => state.theme);
   const searchQuery = useAppStore((state) => state.searchQuery);
   const setSearchQuery = useAppStore((state) => state.setSearchQuery);
+  const pushSearchHistory = useAppStore((state) => state.pushSearchHistory);
   const setLanguage = useAppStore((state) => state.setLanguage);
   const setTheme = useAppStore((state) => state.setTheme);
   const setPage = useAppStore((state) => state.setPage);
@@ -46,11 +48,20 @@ export function AppLayout({ pwa }: AppLayoutProps) {
     setPage(key);
   }, [key, setPage]);
 
-  const toggleTheme = () => {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const isDark = theme === 'dark' || (theme === 'system' && prefersDark);
-    setTheme(isDark ? 'light' : 'dark');
-  };
+  // 顶栏按 light → dark → system 循环，保证「跟随系统」始终可以回来（M2）。
+  const nextTheme: 'light' | 'dark' | 'system' =
+    theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light';
+  const toggleTheme = () => setTheme(nextTheme);
+
+  const isDark =
+    theme === 'dark' ||
+    (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const nextThemeLabel =
+    nextTheme === 'light'
+      ? t.settings.themeLight
+      : nextTheme === 'dark'
+        ? t.settings.themeDark
+        : t.settings.themeSystem;
 
   return (
     <div className="min-h-screen">
@@ -96,11 +107,11 @@ export function AppLayout({ pwa }: AppLayoutProps) {
               variant="ghost"
               size="icon"
               className="h-9 w-9"
-              aria-label={t.action.switchTheme}
-              title={t.action.switchTheme}
+              aria-label={`${t.action.switchTheme} · ${nextThemeLabel}`}
+              title={`${t.action.switchTheme} · ${nextThemeLabel}`}
               onClick={toggleTheme}
             >
-              {theme === 'dark' ? (
+              {isDark ? (
                 <Sun className="h-[18px] w-[18px]" />
               ) : (
                 <Moon className="h-[18px] w-[18px]" />
@@ -130,6 +141,13 @@ export function AppLayout({ pwa }: AppLayoutProps) {
               placeholder={t.today.searchPlaceholder}
               aria-label={t.action.search}
               onChange={(event) => setSearchQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  pushSearchHistory(searchQuery);
+                  setSearchOpen(false);
+                }
+              }}
               className="tp-border h-10 border text-sm"
             />
             <Button
@@ -156,6 +174,7 @@ export function AppLayout({ pwa }: AppLayoutProps) {
 
       <Navigation />
       <TaskForm />
+      <ToastHost />
     </div>
   );
 }

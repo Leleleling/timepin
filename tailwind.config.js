@@ -14,6 +14,15 @@ export default {
           DEFAULT: '#F5A623',
           soft: '#FFF3DF',
         },
+        success: {
+          DEFAULT: 'rgb(var(--tp-success) / <alpha-value>)',
+          soft: 'rgb(var(--tp-success-soft) / <alpha-value>)',
+        },
+        warning: {
+          DEFAULT: 'rgb(var(--tp-warning) / <alpha-value>)',
+          deep: 'rgb(var(--tp-warning-deep) / <alpha-value>)',
+          soft: 'rgb(var(--tp-warning-soft) / <alpha-value>)',
+        },
         muted: {
           DEFAULT: '#6B7280',
           soft: '#F3F4F6',
@@ -39,10 +48,10 @@ export default {
       },
       boxShadow: {
         soft: '0 10px 32px -16px rgba(17, 24, 39, 0.24)',
-        lift: '0 18px 48px -20px rgba(229, 72, 77, 0.42)',
+        lift: '0 18px 48px -20px rgb(var(--tp-brand) / 0.42)',
       },
       borderRadius: {
-        card: '0.875rem',
+        card: 'var(--tp-radius)',
       },
       transitionDuration: {
         200: '200ms',

@@ -25,7 +25,6 @@ export interface BaseDictionary {
     add: string;
     save: string;
     cancel: string;
-    skip: string;
     close: string;
     search: string;
     filter: string;
@@ -41,11 +40,9 @@ export interface BaseDictionary {
     unpin: string;
     complete: string;
     confirm: string;
-    export: string;
-    import: string;
     clear: string;
     back: string;
-    done: string;
+    navigation: string;
   };
   header: {
     today: { title: string; subtitle: string };
@@ -90,9 +87,7 @@ export interface BaseDictionary {
     views: { year: string; month: string; week: string; day: string };
     weekdays: string[];
     hintTitle: string;
-    hintBody: string;
     todayBadge: string;
-    viewHint: string;
     barsLegend: string;
     sheetTitleTemplate: string;
     sheetEmpty: string;
@@ -121,6 +116,14 @@ export interface BaseDictionary {
     themeSystem: string;
     accent: string;
     accentBody: string;
+    accentNames: {
+      red: string;
+      blue: string;
+      green: string;
+      violet: string;
+      amber: string;
+      teal: string;
+    };
     language: string;
     languageBody: string;
     languageZh: string;
@@ -204,22 +207,15 @@ export interface BaseDictionary {
     postponed: string;
     loadError: string;
     saveError: string;
-    storageUnavailable: string;
     genericError: string;
     loading: string;
     exportOk: string;
     importOk: string;
     invalidFile: string;
+    invalidJson: string;
     versionMismatch: string;
     importFail: string;
-  };
-  modal: {
-    title: string;
-    subtitle: string;
-    prefill: string;
-    noDue: string;
-    due: string;
-    note: string;
+    undo: string;
   };
 }
 

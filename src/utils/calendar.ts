@@ -45,6 +45,12 @@ export function groupTasksByDate(tasks: Task[]): Map<string, Task[]> {
     if (bucket) bucket.push(task);
     else groups.set(key, [task]);
   });
+  // 与首页一致：同一天内已完成任务沉到底部（稳定排序）。
+  groups.forEach((bucket) =>
+    bucket.sort(
+      (a, b) => Number(a.status === 'done') - Number(b.status === 'done'),
+    ),
+  );
   return groups;
 }
 
@@ -63,12 +69,13 @@ export interface ColorBar {
   importance: Importance;
 }
 
-/** 每天最多三条色带，按重要度降序取最重要的任务。 */
+/** 每天最多三条色带，按重要度降序取最重要的未完成任务；已完成不占用色带。 */
 export function barsForDay(
   tasks: Task[],
   colorMap: AppSettings['colorMap'],
 ): ColorBar[] {
-  return [...tasks]
+  return tasks
+    .filter((task) => task.status !== 'done')
     .sort((a, b) => b.importance - a.importance)
     .slice(0, 3)
     .map((task) => ({

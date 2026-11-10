@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../../db';
 import { useTasks } from '../../hooks/useTasks';
 import type { Task, UrgencyProfile } from '../../db/models';
 import { useAppStore } from '../../store/useAppStore';
+import { useToastStore } from '../../store/useToastStore';
 import { useDict } from '../../utils/i18n';
 import { calculateUrgency } from '../../utils/urgency';
 import {
@@ -107,21 +110,48 @@ function TaskFormBody({
 
 /** 全局唯一的任务表单：新建、编辑与快捷链接预填共用同一入口。 */
 export function TaskForm() {
+  const t = useDict();
+  const pushToast = useToastStore((state) => state.push);
   const isOpen = useAppStore((state) => state.isTaskModalOpen);
   const editingTaskId = useAppStore((state) => state.editingTaskId);
   const prefill = useAppStore((state) => state.prefill);
   const closeTaskModal = useAppStore((state) => state.closeTaskModal);
   const { tasks, profile, createTask, updateTask } = useTasks();
 
-  if (!isOpen) return null;
+  // 单独查目标是否存在：加载中为 undefined，只有确认为 false 才判定「目标已丢失」，
+  // 避免 useLiveQuery 首帧空数组把正常编辑误关掉（S4）。
+  const targetExists = useLiveQuery(
+    () =>
+      editingTaskId
+        ? db.tasks
+            .get(editingTaskId)
+            .then((found) => Boolean(found))
+            .catch(() => false)
+        : Promise.resolve(true),
+    [editingTaskId],
+    undefined,
+  );
+  const missingTarget = isOpen && Boolean(editingTaskId) && targetExists === false;
+
+  useEffect(() => {
+    if (!missingTarget) return;
+    pushToast({ message: t.feedback.loadError, tone: 'error' });
+    closeTaskModal();
+  }, [missingTarget, pushToast, t.feedback.loadError, closeTaskModal]);
 
   const existing = editingTaskId
     ? tasks.find((task) => task.id === editingTaskId)
     : undefined;
+
+  // 编辑态在目标对象尚未进入 liveQuery 结果前不渲染，避免闪一个「新建任务」表单。
+  if (!isOpen || missingTarget || (editingTaskId && !existing)) return null;
   const showPrefillHint = !existing && Boolean(prefill?.title || prefill?.due);
+  // 编辑对象或预填内容变化时重挂载，草稿随之重置（S5）。
+  const formKey = `${editingTaskId ?? 'new'}:${prefill?.title ?? ''}:${prefill?.due ?? ''}`;
 
   return (
     <TaskFormBody
+      key={formKey}
       initialDraft={existing ? draftFromTask(existing) : draftFromPrefill(prefill)}
       existing={existing}
       showPrefillHint={showPrefillHint}

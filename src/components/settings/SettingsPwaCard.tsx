@@ -20,10 +20,10 @@ export function SettingsPwaCard() {
       <div className="tp-divider my-5" />
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="tp-pill bg-[#E7F7EC] text-[#16794A] dark:bg-[#16A34A]/15 dark:text-[#7BD8A0]">
-          {pwa.offlineReady || pwa.supported
+        <span className="tp-pill bg-success-soft text-success dark:bg-success/15 dark:text-success">
+          {pwa.offlineReady
             ? t.settingsExtra.pwaOfflineReady
-            : t.settingsExtra.pwaNotReady}
+            : t.settingsExtra.pwaOfflinePending}
         </span>
         <span className="tp-pill bg-black/5 tp-muted dark:bg-white/10">
           {interpolate(t.settingsExtra.versionTemplate, { version })}

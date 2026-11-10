@@ -10,7 +10,8 @@ interface PwaBannerProps {
 /** 内容顶部的安装 / 更新提示，主色强调、200ms 淡入，不遮挡固定顶栏。 */
 export function PwaBanner({ pwa }: PwaBannerProps) {
   const t = useDict();
-  const isUpdate = pwa.needRefresh;
+  // 更新横幅与安装横幅各自有独立的关闭状态，避免「以后再说」对更新提示无效。
+  const isUpdate = pwa.needRefresh && !pwa.updateDismissed;
   if (!isUpdate && !pwa.canInstall) return null;
 
   const Icon = isUpdate ? RefreshCw : Download;
@@ -34,7 +35,11 @@ export function PwaBanner({ pwa }: PwaBannerProps) {
         >
           {action}
         </Button>
-        <Button variant="ghost" size="sm" onClick={pwa.dismissInstall}>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={isUpdate ? pwa.dismissUpdate : pwa.dismissInstall}
+        >
           {t.pwa.dismiss}
         </Button>
       </div>

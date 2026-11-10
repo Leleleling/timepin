@@ -26,8 +26,9 @@ export default defineConfig(({ mode }) => {
         injectRegister: null, // 由 usePwa 里的 useRegisterSW 单点注册，避免重复注入
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'timepin.png', 'splash.png'],
         manifest: {
-          name: '时光扣 · TimePin',
-          short_name: '时光扣',
+          name: 'TimePin · 时光扣',
+          // manifest 是构建期静态文件，安装名用中英通用的品牌名；界面语言由运行时同步。
+          short_name: 'TimePin',
           description: '用紧急度重新排列你的每一天。本地优先，离线完全可用，数据只存在这台设备上。',
           lang: 'zh-CN',
           start_url: base,

@@ -64,3 +64,41 @@ export function answeredProfile(selections: (number | null)[]): UrgencyProfile {
     answers: answersFromSelections(selections),
   };
 }
+
+const SELECTIONS_KEY = 'timepin.questionnaireSelections';
+
+/** U25：持久化逐题选择，让「单题重答」能在原有答案基础上只改一题。 */
+export function readSelections(): (number | null)[] {
+  try {
+    const raw = localStorage.getItem(SELECTIONS_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : null;
+    if (!Array.isArray(parsed)) return QUESTIONNAIRE.map(() => null);
+    return QUESTIONNAIRE.map((_, index) => {
+      const value: unknown = parsed[index];
+      return typeof value === 'number' &&
+        Number.isInteger(value) &&
+        value >= 0 &&
+        value < OPTION_SCORES.length
+        ? value
+        : null;
+    });
+  } catch {
+    return QUESTIONNAIRE.map(() => null);
+  }
+}
+
+export function writeSelections(selections: (number | null)[]): void {
+  try {
+    localStorage.setItem(SELECTIONS_KEY, JSON.stringify(selections));
+  } catch (error: unknown) {
+    console.error('[timepin] Unable to save questionnaire selections', error);
+  }
+}
+
+/** 从 profile 反推选择下标，供跳过的用户在重答单题时得到合理的初始答案。 */
+export function selectionsFromProfile(profile: UrgencyProfile): (number | null)[] {
+  return QUESTIONNAIRE.map((question) => {
+    const index = OPTION_SCORES.indexOf(profile.answers[question.key]);
+    return index >= 0 ? index : null;
+  });
+}

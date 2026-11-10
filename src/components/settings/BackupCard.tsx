@@ -26,8 +26,12 @@ export function BackupCard() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const errorLabel = (kind: BackupError): string =>
-    kind === 'versionMismatch' ? t.feedback.versionMismatch : t.feedback.invalidFile;
+  const errorLabel = (kind: BackupError): string => {
+    if (kind === 'versionMismatch') return t.feedback.versionMismatch;
+    // JSON 语法损坏与备份结构不符是两类问题，提示要能区分（T12）。
+    if (kind === 'invalidJson') return t.feedback.invalidJson;
+    return t.feedback.invalidFile;
+  };
 
   const handleExport = () => {
     setFeedback(null);
@@ -118,10 +122,10 @@ export function BackupCard() {
       <div className="mt-4 flex gap-3 rounded-lg bg-sun-soft p-3 dark:bg-sun/10">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-sun" />
         <div>
-          <p className="text-xs font-semibold text-[#9A6200] dark:text-sun">
+          <p className="text-xs font-semibold text-warning">
             {t.backup.hintTitle}
           </p>
-          <p className="mt-1 text-xs leading-relaxed text-[#7A5200] dark:text-sun/85">
+          <p className="mt-1 text-xs leading-relaxed text-warning-deep dark:text-warning/85">
             {t.backup.hintBody}
           </p>
         </div>
@@ -197,7 +201,7 @@ export function BackupCard() {
       </div>
 
       {feedback ? (
-        <p role="status" className="mt-4 flex items-center gap-2 text-xs font-medium text-[#16794A] dark:text-[#7BD8A0]">
+        <p role="status" className="mt-4 flex items-center gap-2 text-xs font-medium text-success">
           <CheckCircle2 className="h-4 w-4" />
           {feedback}
         </p>

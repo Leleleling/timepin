@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, Clock3, Plus } from 'lucide-react';
 import type { AppSettings, Task } from '../../db/models';
+import { useNow } from '../../hooks/useNow';
 import { colorForImportance } from '../../utils/calendar';
 import { buildDaySlots } from '../../utils/calendarViews';
 import { useDict, interpolate, type Lang } from '../../utils/i18n';
@@ -37,8 +38,12 @@ export function DayView({
   onOpenSheet,
 }: DayViewProps) {
   const t = useDict();
+  const now = useNow();
   const locale = language === 'zh' ? 'zh-CN' : 'en-US';
   const slots = buildDaySlots();
+  // U23：只有查看「今天」时才定位当前小时，跨天后由共享时钟自动刷新。
+  const isCurrentDay = new Date(now).toDateString() === date.toDateString();
+  const currentHour = isCurrentDay ? new Date(now).getHours() : -1;
   const byHour = new Map<number, Task[]>();
   const undated: Task[] = [];
 
@@ -142,8 +147,22 @@ export function DayView({
         ) : (
           <div className="max-h-[26rem] overflow-y-auto pr-1">
             {slots.map((slot) => (
-              <div key={slot.hour} className="flex min-h-[26px] gap-3">
-                <span className="tp-muted w-10 shrink-0 pt-1 text-[11px] tabular-nums">{slot.label}</span>
+              <div
+                key={slot.hour}
+                className={cn(
+                  'flex min-h-[26px] gap-3 rounded-md transition-colors',
+                  currentHour === slot.hour && 'bg-brand-soft/70 dark:bg-brand/10',
+                )}
+              >
+                <span
+                  className={cn(
+                    'w-10 shrink-0 pt-1 text-[11px] tabular-nums',
+                    currentHour === slot.hour ? 'font-semibold text-brand' : 'tp-muted',
+                  )}
+                  title={currentHour === slot.hour ? t.featuresExtra.currentHour : undefined}
+                >
+                  {slot.label}
+                </span>
                 <div className="tp-border min-w-0 flex-1 border-t pt-1">
                   {(byHour.get(slot.hour) ?? []).map(renderTask)}
                 </div>

@@ -1,6 +1,8 @@
 import type { AppSettings, Task } from '../db/models';
 
 export type Quadrant = 1 | 2 | 3 | 4;
+/** 可切换的排序键；smart 为原有五级优先级（U18）。 */
+export type SortKey = 'smart' | 'due' | 'importance' | 'created' | 'manual';
 
 /**
  * 四象限划分（总纲 3.2）：
@@ -25,6 +27,7 @@ interface RankedTask {
   weighted: number;
   dueKey: number;
   createdAt: number;
+  manualOrder: number;
 }
 
 /**
@@ -42,6 +45,7 @@ export function sortTasks(
   tasks: Task[],
   settings: AppSettings,
   now: number = Date.now(),
+  mode: SortKey = 'smart',
 ): Task[] {
   const reference = Number.isFinite(now) ? now : Date.now();
   const { importance: importanceWeight, urgency: urgencyWeight } = settings.weights;
@@ -60,20 +64,38 @@ export function sortTasks(
       weighted: task.importance * importanceWeight + task.urgencyScore * urgencyWeight,
       dueKey: hasDue ? (task.dueAt as number) : Number.MAX_SAFE_INTEGER,
       createdAt: task.createdAt,
+      manualOrder:
+        typeof task.manualOrder === 'number' && Number.isFinite(task.manualOrder)
+          ? task.manualOrder
+          : Number.MAX_SAFE_INTEGER,
     };
   });
 
-  ranked.sort(
-    (a, b) =>
-      // 已完成永远沉到列表底部，但彼此之间仍保持置顶/象限等原有次序。
-      Number(a.done) - Number(b.done) ||
-      Number(b.pinned) - Number(a.pinned) ||
+  ranked.sort((a, b) => {
+    // 无论哪种排序键，已完成都沉底、置顶都优先，避免切换排序后已完成任务插到最前。
+    const doneFirst = Number(a.done) - Number(b.done);
+    if (doneFirst !== 0) return doneFirst;
+    const pinnedFirst = Number(b.pinned) - Number(a.pinned);
+    if (pinnedFirst !== 0) return pinnedFirst;
+
+    if (mode === 'due') return a.dueKey - b.dueKey || a.createdAt - b.createdAt;
+    if (mode === 'importance') {
+      return b.weighted - a.weighted || a.dueKey - b.dueKey || a.createdAt - b.createdAt;
+    }
+    if (mode === 'created') return b.createdAt - a.createdAt || a.dueKey - b.dueKey;
+    if (mode === 'manual') {
+      return a.manualOrder - b.manualOrder || a.quadrant - b.quadrant || a.createdAt - b.createdAt;
+    }
+    return (
+      // 同为置顶时按手动顺序；未设置顺序的任务退回原有的过期/象限规则。
+      (a.pinned && b.pinned ? a.manualOrder - b.manualOrder : 0) ||
       Number(b.overdue) - Number(a.overdue) ||
       a.quadrant - b.quadrant ||
       b.weighted - a.weighted ||
       a.dueKey - b.dueKey ||
-      a.createdAt - b.createdAt,
-  );
+      a.createdAt - b.createdAt
+    );
+  });
 
   return ranked.map((entry) => entry.task);
 }
